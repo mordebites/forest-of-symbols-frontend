@@ -35,7 +35,9 @@ type alias Model =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model (Item "" "") [], Cmd.none )
+    ( Model (Item "" "") []
+    , createGetRequest
+    )
 
 
 type alias Item =
@@ -52,7 +54,8 @@ type Msg
     = UpdateTitle String
     | UpdateType String
     | CreateNewItem
-    | UpdateItems (Result Http.Error Item)
+    | ItemCreated (Result Http.Error Item)
+    | UpdateItems (Result Http.Error (List Item))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -67,13 +70,21 @@ update msg model =
         CreateNewItem ->
             ( { model | item = Item "" "" }, createPostRequest model.item )
 
-        UpdateItems result ->
+        ItemCreated result ->
             case result of
-                Ok item ->
-                    ( { model | items = item :: model.items }, Cmd.none )
+                Ok _ ->
+                    ( model, createGetRequest )
 
                 Err _ ->
                     ( model, Cmd.none )
+
+        UpdateItems result ->
+            case result of
+                Ok list ->
+                    ( { model | items = list }, Cmd.none )
+
+                Err _ ->
+                    ( { model | items = [] }, Cmd.none )
 
 
 
@@ -107,16 +118,17 @@ createPostRequest item =
     Http.post
         { url = "http://localhost:8080/items"
         , body = jsonBody (newItemEncoder item)
-        , expect = Http.expectJson UpdateItems itemDecoder
+        , expect = Http.expectJson ItemCreated itemDecoder
         }
 
 
---createGetRequest : Cmd Msg
---createGetRequest =
---    Http.get
---        { url = "http://localhost:8080/items"
---        , expect = Http.expectJson UpdateItems itemDecoder
---        }
+createGetRequest : Cmd Msg
+createGetRequest =
+    Http.get
+        { url = "http://localhost:8080/items"
+        , expect = Http.expectJson UpdateItems (Json.Decode.list itemDecoder)
+        }
+
 
 newItemEncoder : Item -> Json.Encode.Value
 newItemEncoder item =
@@ -131,12 +143,6 @@ itemDecoder =
     succeed Item
         |> Json.Decode.Pipeline.required "title" Json.Decode.string
         |> Json.Decode.Pipeline.required "type" Json.Decode.string
-
---itemListDecoder : Decoder List Item
---itemListDecoder =
---    succeed List Item
---        |> Json.Decode.Pipeline.required "title" Json.Decode.string
---        |> Json.Decode.Pipeline.required "type" Json.Decode.string
 
 
 onEnter : Msg -> Attribute Msg
