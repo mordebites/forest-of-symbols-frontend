@@ -1,13 +1,11 @@
-module Main exposing (Model, Msg(..), init, main, update, view)
+module Main exposing (init, main, update)
 
 import Browser
-import Html exposing (..)
-import Html.Attributes exposing (..)
-import Html.Events exposing (keyCode, on, onInput, targetValue)
+import Decoders exposing (itemDecoder, itemsDecoder)
+import Encoders exposing (newItemEncoder)
 import Http exposing (..)
-import Json.Decode exposing (..)
-import Json.Decode.Pipeline exposing (..)
-import Json.Encode exposing (..)
+import Models exposing (Item, Model, Msg(..))
+import View exposing (view)
 
 
 
@@ -27,35 +25,15 @@ main =
 -- MODEL
 
 
-type alias Model =
-    { item : Item
-    , items : List Item
-    }
-
-
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model (Item "" "") []
+    ( Model (Item "" "") [] ""
     , createGetRequest
     )
 
 
-type alias Item =
-    { title : String
-    , itemType : String
-    }
-
-
 
 -- UPDATE
-
-
-type Msg
-    = UpdateTitle String
-    | UpdateType String
-    | CreateNewItem
-    | ItemCreated (Result Http.Error Item)
-    | UpdateItems (Result Http.Error (List Item))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -68,7 +46,7 @@ update msg model =
             ( { model | item = Item model.item.title input }, Cmd.none )
 
         CreateNewItem ->
-            ( { model | item = Item "" "" }, createPostRequest model.item )
+            ( Model (Item "" "") model.items "", createPostRequest model.item )
 
         ItemCreated result ->
             case result of
@@ -76,41 +54,15 @@ update msg model =
                     ( model, createGetRequest )
 
                 Err _ ->
-                    ( model, Cmd.none )
+                    ( { model | error = "Item Creation issues" }, Cmd.none )
 
         UpdateItems result ->
             case result of
                 Ok list ->
-                    ( { model | items = list }, Cmd.none )
+                    ( Model model.item list "", Cmd.none )
 
                 Err _ ->
-                    ( { model | items = [] }, Cmd.none )
-
-
-
--- SUBSCRIPTIONS
-
-
-subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Sub.none
-
-
-
--- VIEW
-
-
-view : Model -> Html Msg
-view model =
-    div []
-        [ input [ type_ "text", placeholder "Title", Html.Attributes.value model.item.title, onInput UpdateTitle, onEnter CreateNewItem ] []
-        , input [ type_ "text", placeholder "Type", Html.Attributes.value model.item.itemType, onInput UpdateType, onEnter CreateNewItem ] []
-        , ul [] (List.map (\item -> li [] [ text ("Title: " ++ item.title ++ " Type: " ++ item.itemType) ]) model.items)
-        ]
-
-
-
--- HELPER
+                    ( { model | error = "Item List Retrieval Issues" }, Cmd.none )
 
 
 createPostRequest : Item -> Cmd Msg
@@ -126,36 +78,14 @@ createGetRequest : Cmd Msg
 createGetRequest =
     Http.get
         { url = "http://localhost:8080/items"
-        , expect = Http.expectJson UpdateItems (Json.Decode.list itemDecoder)
+        , expect = Http.expectJson UpdateItems itemsDecoder
         }
 
 
-newItemEncoder : Item -> Json.Encode.Value
-newItemEncoder item =
-    Json.Encode.object
-        [ ( "title", Json.Encode.string item.title )
-        , ( "type", Json.Encode.string item.itemType )
-        ]
+
+-- SUBSCRIPTIONS
 
 
-itemDecoder : Decoder Item
-itemDecoder =
-    succeed Item
-        |> Json.Decode.Pipeline.required "title" Json.Decode.string
-        |> Json.Decode.Pipeline.required "type" Json.Decode.string
-
-
-onEnter : Msg -> Attribute Msg
-onEnter tagger =
-    let
-        isEnter code =
-            if code == 13 then
-                succeed "Enter pressed"
-
-            else
-                fail "Not Enter"
-
-        decode_Enter =
-            andThen isEnter keyCode
-    in
-    on "keydown" (map2 (\_ _ -> tagger) decode_Enter targetValue)
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+    Sub.none
