@@ -4,16 +4,24 @@ import Html exposing (Attribute, Html, div, input, li, text, ul)
 import Html.Attributes exposing (placeholder, type_)
 import Html.Events exposing (keyCode, on, onInput, targetValue)
 import Json.Decode exposing (andThen, fail, map2, succeed)
-import Models exposing (Model, Msg(..))
+import Models exposing (Item, Model, Msg(..))
 
 
 view : Model -> Html Msg
 view model =
     div []
-        [ input [ type_ "text", placeholder "Title", Html.Attributes.value model.item.title, onInput UpdateTitle, onEnter CreateNewItem ] []
-        , input [ type_ "text", placeholder "Type", Html.Attributes.value model.item.itemType, onInput UpdateType, onEnter CreateNewItem ] []
+        [ div [] [ text "Item Creation" ]
+        , input [ type_ "text", placeholder "Item Title", Html.Attributes.value model.item.title, onInput UpdateItemTitle, onEnter CreateNewItem ] []
+        , input [ type_ "text", placeholder "Item Type", Html.Attributes.value model.item.itemType, onInput UpdateItemType, onEnter CreateNewItem ] []
+        , div [] [ text "Link Creation" ]
+        , input [ type_ "text", placeholder "Link Type", Html.Attributes.value model.link.linkType, onInput UpdateLinkType, onEnter CreateNewLink ] []
+        , input [ type_ "text", placeholder "Link Source", Html.Attributes.value (String.fromInt model.link.source), onInput UpdateLinkFrom, onEnter CreateNewLink ] []
+        , input [ type_ "text", placeholder "Link Destination", Html.Attributes.value (String.fromInt model.link.dest), onInput UpdateLinkTo, onEnter CreateNewLink ] []
         , div [] [ text model.error ]
-        , ul [] (List.map (\item -> li [] [ text ("Title: " ++ item.title ++ " Type: " ++ item.itemType) ]) model.items)
+        , div [] [ text "Items" ]
+        , ul [] (List.map (\item -> li [] [ text ("Id: " ++ (String.fromInt item.id) ++ " | Title: " ++ item.title ++ " Type: " ++ item.itemType) ]) model.items)
+        , div [] [ text "Links" ]
+        , ul [] (List.map (\link -> li [] [ text ("Id: " ++ (String.fromInt link.id) ++ " | Type: " ++ link.linkType ++ " ") ]) model.links)
         ]
 
 
