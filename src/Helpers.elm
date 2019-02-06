@@ -13,7 +13,7 @@ getItemTitleFromId model itemId =
     in
     case head (filter isSameId model.items) of
         Just item ->
-            String.fromInt item.id
+            item.title
 
         Nothing ->
             ""

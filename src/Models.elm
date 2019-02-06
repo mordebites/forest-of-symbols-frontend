@@ -20,8 +20,8 @@ type Msg
     = UpdateItemTitle String
     | UpdateItemType String
     | UpdateLinkType String
-    | UpdateLinkFrom String
-    | UpdateLinkTo String
+    | UpdateLinkSource String
+    | UpdateLinkDest String
     | CreateNewItem
     | CreateNewLink
     | ItemCreated (Result Http.Error Item)

@@ -1,5 +1,6 @@
 module View exposing (view)
 
+import Helpers exposing (getItemTitleFromId)
 import Html exposing (Attribute, Html, div, input, li, text, ul)
 import Html.Attributes exposing (placeholder, type_)
 import Html.Events exposing (keyCode, on, onInput, targetValue)
@@ -15,13 +16,13 @@ view model =
         , input [ type_ "text", placeholder "Item Type", Html.Attributes.value model.item.itemType, onInput UpdateItemType, onEnter CreateNewItem ] []
         , div [] [ text "Link Creation" ]
         , input [ type_ "text", placeholder "Link Type", Html.Attributes.value model.link.linkType, onInput UpdateLinkType, onEnter CreateNewLink ] []
-        , input [ type_ "text", placeholder "Link Source", Html.Attributes.value (String.fromInt model.link.source), onInput UpdateLinkFrom, onEnter CreateNewLink ] []
-        , input [ type_ "text", placeholder "Link Destination", Html.Attributes.value (String.fromInt model.link.dest), onInput UpdateLinkTo, onEnter CreateNewLink ] []
+        , input [ type_ "text", placeholder "Link Source", Html.Attributes.value (String.fromInt model.link.source), onInput UpdateLinkSource, onEnter CreateNewLink ] []
+        , input [ type_ "text", placeholder "Link Destination", Html.Attributes.value (String.fromInt model.link.dest), onInput UpdateLinkDest, onEnter CreateNewLink ] []
         , div [] [ text model.error ]
         , div [] [ text "Items" ]
-        , ul [] (List.map (\item -> li [] [ text ("Id: " ++ (String.fromInt item.id) ++ " | Title: " ++ item.title ++ " Type: " ++ item.itemType) ]) model.items)
+        , ul [] (List.map (\item -> li [] [ text ("Id: " ++ String.fromInt item.id ++ " | Title: " ++ item.title ++ " Type: " ++ item.itemType) ]) model.items)
         , div [] [ text "Links" ]
-        , ul [] (List.map (\link -> li [] [ text ("Id: " ++ (String.fromInt link.id) ++ " | Type: " ++ link.linkType ++ " ") ]) model.links)
+        , ul [] (List.map (\link -> li [] [ text ("Id: " ++ String.fromInt link.id ++ " | Type: " ++ link.linkType ++ " " ++ (getItemTitleFromId model link.source) ++ " -> " ++ (getItemTitleFromId model link.dest)) ]) model.links)
         ]
 
 

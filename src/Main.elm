@@ -40,20 +40,20 @@ init _ =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        UpdateItemTitle input ->
-            ( { model | item = Item missingId input model.item.itemType }, Cmd.none )
+        UpdateItemTitle newTitle ->
+            ( { model | item = Item missingId newTitle model.item.itemType }, Cmd.none )
 
-        UpdateItemType input ->
-            ( { model | item = Item missingId model.item.title input }, Cmd.none )
+        UpdateItemType newType ->
+            ( { model | item = Item missingId model.item.title newType }, Cmd.none )
 
-        UpdateLinkType input ->
-            ( { model | link = Link missingId input model.link.source model.link.dest }, Cmd.none )
+        UpdateLinkType newType ->
+            ( { model | link = setTypeInLink newType model.link}, Cmd.none )
 
-        UpdateLinkFrom input ->
-            ( { model | link = Link missingId model.link.linkType (getIdFromString input) model.link.dest }, Cmd.none )
+        UpdateLinkSource newSource ->
+            ( { model | link = setSourceItemInLink (getIdFromString newSource) model.link }, Cmd.none )
 
-        UpdateLinkTo input ->
-            ( { model | link = Link missingId model.link.linkType model.link.source (getIdFromString input) }, Cmd.none )
+        UpdateLinkDest newDest ->
+            ( { model | link = setDestItemInLink (getIdFromString newDest) model.link }, Cmd.none )
 
         CreateNewItem ->
             validateItem model
@@ -64,7 +64,7 @@ update msg model =
         ItemCreated result ->
             case result of
                 Ok _ ->
-                    ( Model (Item missingId "" "") model.items model.link model.links "", createItemGetRequest )
+                    ( { model | item = Item missingId "" "" }, createItemGetRequest )
 
                 Err _ ->
                     ( { model | error = "Item Creation issues" }, Cmd.none )
@@ -72,7 +72,7 @@ update msg model =
         LinkCreated result ->
             case result of
                 Ok _ ->
-                    ( Model model.item model.items (Link missingId "" missingId missingId) model.links "", createLinkGetRequest )
+                    ( { model | link = Link missingId "" missingId missingId }, createLinkGetRequest )
 
                 Err _ ->
                     ( { model | error = "Link Creation issues" }, Cmd.none )
@@ -80,7 +80,7 @@ update msg model =
         UpdateItems result ->
             case result of
                 Ok items ->
-                    ( Model model.item items model.link model.links "", Cmd.none )
+                    ( { model | items = items }, Cmd.none )
 
                 Err _ ->
                     ( { model | error = "Item List Retrieval Issues" }, Cmd.none )
@@ -88,11 +88,24 @@ update msg model =
         UpdateLinks result ->
             case result of
                 Ok links ->
-                    ( Model model.item model.items model.link links "", Cmd.none )
+                    ( { model | links = links }, Cmd.none )
 
                 Err _ ->
                     ( { model | error = "Link List Retrieval Issues" }, Cmd.none )
 
+
+setSourceItemInLink : Int -> Link -> Link
+setSourceItemInLink newId oldLink =
+    { oldLink | source = newId }
+
+
+setDestItemInLink : Int -> Link -> Link
+setDestItemInLink newId oldLink =
+    { oldLink | dest = newId }
+
+setTypeInLink : String -> Link -> Link
+setTypeInLink newLinkType oldLink =
+    {oldLink | linkType = newLinkType }
 
 createItemPostRequest : Item -> Cmd Msg
 createItemPostRequest item =
