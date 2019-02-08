@@ -1,11 +1,11 @@
 module Main exposing (init, main, update)
 
 import Browser
-import Decoders exposing (itemDecoder, itemsDecoder, linkDecoder, linksDecoder)
-import Encoders exposing (newItemEncoder, newLinkEncoder)
-import Helpers exposing (getIdFromString, getItemTitleFromId)
-import Http exposing (..)
-import Models exposing (Item, Link, Model, Msg(..), missingId)
+import Graph exposing (Edge, Node, NodeContext)
+import Helpers exposing (getIdFromString)
+import HttpRequests exposing (createItemGetRequest, createLinkGetRequest)
+import Models exposing (Entity, Item, Link, Model, Msg(..), missingId)
+import Validators exposing (validateItem, validateLink)
 import View exposing (view)
 
 
@@ -28,7 +28,7 @@ main =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model (Item missingId "" "") [] (Link missingId "" missingId missingId) [] ""
+    ( Model (Item missingId "" "") (Link missingId "" missingId missingId) "" Graph.empty
     , Cmd.batch [ createItemGetRequest, createLinkGetRequest ]
     )
 
@@ -47,7 +47,7 @@ update msg model =
             ( { model | item = Item missingId model.item.title newType }, Cmd.none )
 
         UpdateLinkType newType ->
-            ( { model | link = setTypeInLink newType model.link}, Cmd.none )
+            ( { model | link = setTypeInLink newType model.link }, Cmd.none )
 
         UpdateLinkSource newSource ->
             ( { model | link = setSourceItemInLink (getIdFromString newSource) model.link }, Cmd.none )
@@ -80,7 +80,7 @@ update msg model =
         UpdateItems result ->
             case result of
                 Ok items ->
-                    ( { model | items = items }, Cmd.none )
+                    ( { model | graph = Graph.fromNodesAndEdges (convertItemsToNodes items) (Graph.edges model.graph) }, Cmd.none )
 
                 Err _ ->
                     ( { model | error = "Item List Retrieval Issues" }, Cmd.none )
@@ -88,7 +88,7 @@ update msg model =
         UpdateLinks result ->
             case result of
                 Ok links ->
-                    ( { model | links = links }, Cmd.none )
+                    ( { model | graph = Graph.fromNodesAndEdges (Graph.nodes model.graph) (convertLinksToEdges links) }, Cmd.none )
 
                 Err _ ->
                     ( { model | error = "Link List Retrieval Issues" }, Cmd.none )
@@ -103,70 +103,31 @@ setDestItemInLink : Int -> Link -> Link
 setDestItemInLink newId oldLink =
     { oldLink | dest = newId }
 
+
 setTypeInLink : String -> Link -> Link
 setTypeInLink newLinkType oldLink =
-    {oldLink | linkType = newLinkType }
-
-createItemPostRequest : Item -> Cmd Msg
-createItemPostRequest item =
-    Http.post
-        { url = "http://localhost:8080/items"
-        , body = jsonBody (newItemEncoder item)
-        , expect = Http.expectJson ItemCreated itemDecoder
-        }
+    { oldLink | linkType = newLinkType }
 
 
-createLinkPostRequest : Link -> Cmd Msg
-createLinkPostRequest link =
-    Http.post
-        { url = "http://localhost:8080/links"
-        , body = jsonBody (newLinkEncoder link)
-        , expect = Http.expectJson LinkCreated linkDecoder
-        }
+convertItemsToNodes : List Item -> List (Node Entity)
+convertItemsToNodes items =
+    List.map (\item -> Node item.id item) items
 
 
-createItemGetRequest : Cmd Msg
-createItemGetRequest =
-    Http.get
-        { url = "http://localhost:8080/items"
-        , expect = Http.expectJson UpdateItems itemsDecoder
-        }
-
-
-createLinkGetRequest : Cmd Msg
-createLinkGetRequest =
-    Http.get
-        { url = "http://localhost:8080/links"
-        , expect = Http.expectJson UpdateLinks linksDecoder
-        }
-
-
-validateItem : Model -> ( Model, Cmd Msg )
-validateItem model =
-    if String.length model.item.title > 0 && String.length model.item.itemType > 0 then
-        ( model, createItemPostRequest model.item )
-
-    else
-        ( { model | error = "Insert both item title and type" }, Cmd.none )
-
-
-validateLink : Model -> ( Model, Cmd Msg )
-validateLink model =
-    if
-        String.length model.link.linkType
-            > 0
-            && String.length (String.fromInt model.link.source)
-            > 0
-            && String.length (String.fromInt model.link.dest)
-            > 0
-    then
-        ( model, createLinkPostRequest model.link )
-
-    else
-        ( { model | error = "Insert valid link type, source and destination" }, Cmd.none )
+convertLinksToEdges : List Link -> List (Edge Link)
+convertLinksToEdges links =
+    List.map (\link -> Link link.source link.dest link) links
 
 
 
+{--
+initializeNode : NodeContext String () -> NodeContext Entity ()
+initializeNode ctx =
+    { node = { label = Force.entity ctx.node.id ctx.node.label, id = ctx.node.id }
+    , incoming = ctx.incoming
+    , outgoing = ctx.outgoing
+    }
+--}
 -- SUBSCRIPTIONS
 
 

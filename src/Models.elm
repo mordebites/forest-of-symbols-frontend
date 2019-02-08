@@ -1,7 +1,8 @@
-module Models exposing (Item, Link, Model, Msg(..), missingId)
+module Models exposing (Item, Link, Model, Msg(..), missingId, Entity)
 
+import Force
+import Graph exposing (Graph, NodeId)
 import Http
-
 
 missingId =
     -1
@@ -9,10 +10,9 @@ missingId =
 
 type alias Model =
     { item : Item
-    , items : List Item
     , link : Link
-    , links : List Link
     , error : String
+    , graph : Graph Entity Link
     }
 
 
@@ -43,3 +43,6 @@ type alias Link =
     , source : Int
     , dest : Int
     }
+
+type alias Entity =
+    Force.Entity NodeId Item
