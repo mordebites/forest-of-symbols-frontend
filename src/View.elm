@@ -1,4 +1,4 @@
-module View exposing (view)
+module View exposing (h, view, w)
 
 import Color
 import Force
@@ -47,6 +47,7 @@ view model =
         ]
 
 
+
 onEnter : Msg -> Attribute Msg
 onEnter tagger =
     let
@@ -69,7 +70,7 @@ linkElement graph edge =
             Maybe.withDefault (Force.entity 0 (Item missingId "" "")) <| Maybe.map (.node >> .label) <| Graph.get edge.from graph
 
         target =
-            Maybe.withDefault (Force.entity 0 ((Item missingId "" ""))) <| Maybe.map (.node >> .label) <| Graph.get edge.to graph
+            Maybe.withDefault (Force.entity 0 (Item missingId "" "")) <| Maybe.map (.node >> .label) <| Graph.get edge.to graph
     in
     line
         [ strokeWidth 1
@@ -91,7 +92,7 @@ nodeElement node =
         , cx node.label.x
         , cy node.label.y
         ]
-        [ text node.value.title ]
+        [ text node.label.value.title ]
 
 
 nodeText node =
@@ -100,5 +101,7 @@ nodeText node =
         , y (node.label.y + 20)
         , fontSize 10
         , textAnchor AnchorMiddle
+        , stroke Color.red
+        , fill (Fill Color.black)
         ]
-        [ text node.label.title ]
+        [ text node.label.value.title ]

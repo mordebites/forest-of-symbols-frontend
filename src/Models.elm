@@ -1,8 +1,10 @@
-module Models exposing (Item, Link, Model, Msg(..), missingId, Entity)
+module Models exposing (Entity, Item, Link, Model, Msg(..), missingId)
 
 import Force
 import Graph exposing (Graph, NodeId)
 import Http
+import Time
+
 
 missingId =
     -1
@@ -13,6 +15,7 @@ type alias Model =
     , link : Link
     , error : String
     , graph : Graph Entity Link
+    , simulation : Force.State NodeId
     }
 
 
@@ -28,6 +31,7 @@ type Msg
     | LinkCreated (Result Http.Error Link)
     | UpdateItems (Result Http.Error (List Item))
     | UpdateLinks (Result Http.Error (List Link))
+    | Tick Time.Posix
 
 
 type alias Item =
@@ -44,5 +48,6 @@ type alias Link =
     , dest : Int
     }
 
+
 type alias Entity =
-    Force.Entity NodeId Item
+    Force.Entity NodeId { value : Item }

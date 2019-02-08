@@ -1,12 +1,16 @@
 module Main exposing (init, main, update)
 
 import Browser
-import Graph exposing (Edge, Node, NodeContext)
+import Browser.Events
+import Force exposing (Force)
+import Graph exposing (Edge, Graph, Node, NodeContext, NodeId)
 import Helpers exposing (getIdFromString)
+import Html.Events.Extra.Mouse as Mouse
 import HttpRequests exposing (createItemGetRequest, createLinkGetRequest)
 import Models exposing (Entity, Item, Link, Model, Msg(..), missingId)
+import TypedSvg.Core exposing (Attribute)
 import Validators exposing (validateItem, validateLink)
-import View exposing (view)
+import View exposing (h, view, w)
 
 
 
@@ -28,9 +32,31 @@ main =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model (Item missingId "" "") (Link missingId "" missingId missingId) "" Graph.empty
+    let
+        link { from, to } =
+            ( from, to )
+
+        forces =
+            [ Force.links <| List.map link <| Graph.edges Graph.empty
+            , Force.manyBody <| List.map .id <| Graph.nodes Graph.empty
+            , Force.center (w / 2) (h / 2)
+            ]
+    in
+    ( Model (Item missingId "" "") (Link missingId "" missingId missingId) "" Graph.empty (Force.simulation forces)
     , Cmd.batch [ createItemGetRequest, createLinkGetRequest ]
     )
+
+
+setForces : Graph Entity Link -> List (Force Int)
+setForces graph =
+    let
+        link { from, to } =
+            ( from, to )
+    in
+    [ Force.links <| List.map link <| Graph.edges graph
+    , Force.manyBody <| List.map .id <| Graph.nodes graph
+    , Force.center (w / 2) (h / 2)
+    ]
 
 
 
@@ -80,7 +106,12 @@ update msg model =
         UpdateItems result ->
             case result of
                 Ok items ->
-                    ( { model | graph = Graph.fromNodesAndEdges (convertItemsToNodes items) (Graph.edges model.graph) }, Cmd.none )
+                    ( { model
+                        | graph = Graph.fromNodesAndEdges (convertItemsToNodes items) (Graph.edges model.graph)
+                        , simulation = Force.simulation (setForces model.graph)
+                      }
+                    , Cmd.none
+                    )
 
                 Err _ ->
                     ( { model | error = "Item List Retrieval Issues" }, Cmd.none )
@@ -88,10 +119,40 @@ update msg model =
         UpdateLinks result ->
             case result of
                 Ok links ->
-                    ( { model | graph = Graph.fromNodesAndEdges (Graph.nodes model.graph) (convertLinksToEdges links) }, Cmd.none )
+                    ( { model
+                        | graph = Graph.fromNodesAndEdges (Graph.nodes model.graph) (convertLinksToEdges links)
+                        , simulation = Force.simulation (setForces model.graph)
+                      }
+                    , Cmd.none
+                    )
 
                 Err _ ->
                     ( { model | error = "Link List Retrieval Issues" }, Cmd.none )
+
+        Tick _ ->
+            let
+                ( newState, list ) =
+                    Force.tick model.simulation <| List.map .label <| Graph.nodes model.graph
+            in
+            ( { model | graph = (updateGraphWithList model.graph list), simulation = newState }, Cmd.none )
+
+
+updateContextWithValue : NodeContext Entity Link -> Entity -> NodeContext Entity Link
+updateContextWithValue nodeCtx value =
+    let
+        node =
+            nodeCtx.node
+    in
+    { nodeCtx | node = { node | label = value } }
+
+
+updateGraphWithList : Graph Entity Link -> List Entity -> Graph Entity Link
+updateGraphWithList =
+    let
+        graphUpdater value =
+            Maybe.map (\ctx -> updateContextWithValue ctx value)
+    in
+    List.foldr (\node graph -> Graph.update node.id (graphUpdater node) graph)
 
 
 setSourceItemInLink : Int -> Link -> Link
@@ -111,26 +172,24 @@ setTypeInLink newLinkType oldLink =
 
 convertItemsToNodes : List Item -> List (Node Entity)
 convertItemsToNodes items =
-    List.map (\item -> Node item.id item) items
+    List.map (\item -> { id = item.id, label = Force.entity item.id item }) items
 
 
 convertLinksToEdges : List Link -> List (Edge Link)
 convertLinksToEdges links =
-    List.map (\link -> Link link.source link.dest link) links
+    List.map (\link -> { from = link.source, to = link.dest, label = link }) links
 
 
 
-{--
-initializeNode : NodeContext String () -> NodeContext Entity ()
-initializeNode ctx =
-    { node = { label = Force.entity ctx.node.id ctx.node.label, id = ctx.node.id }
-    , incoming = ctx.incoming
-    , outgoing = ctx.outgoing
-    }
---}
 -- SUBSCRIPTIONS
 
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Sub.none
+subscriptions model =
+    -- This allows us to save resources, as if the simulation is done, there is no point in subscribing
+    -- to the rAF.
+    if Force.isCompleted model.simulation then
+        Sub.none
+
+    else
+        Browser.Events.onAnimationFrame Tick
