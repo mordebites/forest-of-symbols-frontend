@@ -1,4 +1,4 @@
-module Helpers exposing (getItemTitleFromId, getIdFromString)
+module Helpers exposing (getIdFromString, getItemTitleFromId)
 
 import List exposing (filter, head)
 import Models exposing (Item, Model, missingId)
@@ -11,7 +11,7 @@ getItemTitleFromId model itemId =
         isSameId item =
             item.id == itemId
     in
-    case head (filter isSameId model.items) of
+    case head (filter isSameId model.textBoxes.items) of
         Just item ->
             item.title
 
