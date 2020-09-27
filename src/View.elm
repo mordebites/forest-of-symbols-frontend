@@ -4,17 +4,16 @@ import Color
 import Force
 import Graph exposing (Edge, Graph, Node, NodeId)
 import Helpers exposing (getItemTitleFromId)
-import Html exposing (Attribute, Html, div, input, li, text, ul)
+import Html exposing (Attribute, Html, div, input, li, ul)
 import Html.Attributes exposing (placeholder, style, type_)
 import Html.Events exposing (keyCode, on, onInput, onMouseDown, targetValue)
 import Html.Events.Extra.Mouse as Mouse
 import Json.Decode exposing (andThen, fail, map2, succeed)
 import Models exposing (Entity, Item, Model, Msg(..), State(..), elementId)
-import Svg exposing (svg)
-import TypedSvg exposing (circle, defs, g, line, marker, polygon, rect, text_, title)
+import TypedSvg exposing (circle, defs, g, line, marker, polygon, rect, svg, text_, title)
 import TypedSvg.Attributes as Attrs exposing (class, cursor, fill, fontSize, id, markerEnd, markerHeight, markerWidth, orient, pointerEvents, points, refX, refY, stroke)
 import TypedSvg.Attributes.InPx exposing (cx, cy, dx, dy, r, strokeWidth, x1, x2, y1, y2)
-import TypedSvg.Core exposing (Svg)
+import TypedSvg.Core exposing (Svg, text)
 import TypedSvg.Types exposing (AlignmentBaseline(..), AnchorAlignment(..), Cursor(..), Length(..), Paint(..))
 import Zoom
 
@@ -41,19 +40,7 @@ view model =
                     Zoom.transform zoom
     in
     div []
-        [ div [] [ text "Item Creation" ]
-        , input [ type_ "text", placeholder "Item Title", Html.Attributes.value model.textBoxes.item.title, onInput UpdateItemTitle, onEnter CreateNewItem ] []
-        , input [ type_ "text", placeholder "Item Type", Html.Attributes.value model.textBoxes.item.itemType, onInput UpdateItemType, onEnter CreateNewItem ] []
-        , div [] [ text "Link Creation" ]
-        , input [ type_ "text", placeholder "Link Type", Html.Attributes.value model.textBoxes.link.linkType, onInput UpdateLinkType, onEnter CreateNewLink ] []
-        , input [ type_ "text", placeholder "Link Source", Html.Attributes.value (String.fromInt model.textBoxes.link.source), onInput UpdateLinkSource, onEnter CreateNewLink ] []
-        , input [ type_ "text", placeholder "Link Destination", Html.Attributes.value (String.fromInt model.textBoxes.link.dest), onInput UpdateLinkDest, onEnter CreateNewLink ] []
-        , div [] [ text model.textBoxes.error ]
-        , div [] [ text "Items" ]
-        , ul [] (List.map (\item -> li [] [ text ("Id: " ++ String.fromInt item.id ++ " | Title: " ++ item.title ++ " Type: " ++ item.itemType) ]) model.textBoxes.items)
-        , div [] [ text "Links" ]
-        , ul [] (List.map (\link -> li [] [ text ("Id: " ++ String.fromInt link.id ++ " | Type: " ++ link.linkType ++ " " ++ getItemTitleFromId model link.source ++ " -> " ++ getItemTitleFromId model link.dest) ]) model.textBoxes.links)
-        , div
+        [ div
             [ style "width" "80%"
             , style "height" "400px"
             , style "margin" "50px auto"
@@ -83,6 +70,18 @@ view model =
                     [ renderGraph model ]
                 ]
             ]
+        , div [] [ text "Item Creation" ]
+        , input [ type_ "text", placeholder "Item Title", Html.Attributes.value model.textBoxes.item.title, onInput UpdateItemTitle, onEnter CreateNewItem ] []
+        , input [ type_ "text", placeholder "Item Type", Html.Attributes.value model.textBoxes.item.itemType, onInput UpdateItemType, onEnter CreateNewItem ] []
+        , div [] [ text "Link Creation" ]
+        , input [ type_ "text", placeholder "Link Type", Html.Attributes.value model.textBoxes.link.linkType, onInput UpdateLinkType, onEnter CreateNewLink ] []
+        , input [ type_ "text", placeholder "Link Source", Html.Attributes.value (String.fromInt model.textBoxes.link.source), onInput UpdateLinkSource, onEnter CreateNewLink ] []
+        , input [ type_ "text", placeholder "Link Destination", Html.Attributes.value (String.fromInt model.textBoxes.link.dest), onInput UpdateLinkDest, onEnter CreateNewLink ] []
+        , div [] [ text model.textBoxes.error ]
+        , div [] [ text "Items" ]
+        , ul [] (List.map (\item -> li [] [ text ("Id: " ++ String.fromInt item.id ++ " | Title: " ++ item.title ++ " Type: " ++ item.itemType) ]) model.textBoxes.items)
+        , div [] [ text "Links" ]
+        , ul [] (List.map (\link -> li [] [ text ("Id: " ++ String.fromInt link.id ++ " | Type: " ++ link.linkType ++ " " ++ getItemTitleFromId model link.source ++ " -> " ++ getItemTitleFromId model link.dest) ]) model.textBoxes.links)
         ]
 
 

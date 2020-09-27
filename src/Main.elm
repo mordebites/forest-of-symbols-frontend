@@ -6,7 +6,7 @@ import Browser.Events as Events
 import Decoders exposing (itemDecoder, itemsDecoder, linkDecoder, linksDecoder)
 import Encoders exposing (newItemEncoder, newLinkEncoder)
 import Force
-import Graph exposing (Edge, Graph, Node, NodeContext, NodeId, fromNodesAndEdges)
+import Graph exposing (Edge, Graph, Node, NodeContext, NodeId)
 import Helpers exposing (getIdFromString)
 import Html.Events.Extra.Mouse as Mouse
 import Http exposing (..)
@@ -67,7 +67,7 @@ getGraphFromItemAndLinkLists items links =
         edges =
             map linkToEdge links
     in
-    fromNodesAndEdges nodes edges
+    Graph.fromNodesAndEdges nodes edges
 
 
 itemToNode : Item -> Node String
