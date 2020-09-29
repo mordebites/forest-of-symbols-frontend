@@ -86,12 +86,6 @@ type Msg
     | ZoomMsg OnZoom
 
 
-type alias Touch =
-    { position : ( Float, Float )
-    , identifier : Int
-    }
-
-
 type alias Item =
     { id : Int
     , title : String

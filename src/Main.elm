@@ -43,7 +43,7 @@ init _ =
 
 
 {-| The graph data we defined at the end of the module has the type
-`Graph String ()`. We have to convert it into a `Graph Entity ()`.
+`Graph String String`. We have to convert it into a `Graph Entity String`.
 `Force.Entity` is an extensible record which includes the coordinates for the
 node.
 -}
@@ -133,14 +133,14 @@ update msg model =
                 Ok items ->
                     case model.state of
                         Init _ ->
-                            ( Model { oldTextBoxes | items = items } model.state, Cmd.none )
+                            ( Model { oldTextBoxes | items = items } model.state, getElementPosition )
 
                         Ready state ->
                             let
                                 newGraph =
                                     Graph.mapContexts initNode (getGraphFromItemAndLinkLists items model.textBoxes.links)
                             in
-                            ( Model { oldTextBoxes | items = items } (Ready { state | graph = newGraph }), Cmd.none )
+                            ( Model { oldTextBoxes | items = items } (Ready { state | graph = newGraph }), getElementPosition )
 
                 Err _ ->
                     ( Model { oldTextBoxes | error = "Item List Retrieval Issues" } model.state, Cmd.none )
@@ -150,14 +150,14 @@ update msg model =
                 Ok links ->
                     case model.state of
                         Init _ ->
-                            ( Model { oldTextBoxes | links = links } model.state, Cmd.none )
+                            ( Model { oldTextBoxes | links = links } model.state, getElementPosition )
 
                         Ready state ->
                             let
                                 newGraph =
                                     Graph.mapContexts initNode (getGraphFromItemAndLinkLists model.textBoxes.items links)
                             in
-                            ( Model { oldTextBoxes | links = links } (Ready { state | graph = newGraph }), Cmd.none )
+                            ( Model { oldTextBoxes | links = links } (Ready { state | graph = newGraph }), getElementPosition )
 
                 Err _ ->
                     ( Model { oldTextBoxes | error = "Link List Retrieval Issues" } model.state, Cmd.none )
