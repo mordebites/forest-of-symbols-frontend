@@ -4,8 +4,9 @@ import Browser
 import Browser.Dom as Dom
 import Browser.Events as Events
 import Decoders exposing (itemDecoder, itemsDecoder, linkDecoder, linksDecoder)
+import Dict
 import Encoders exposing (newItemEncoder, newLinkEncoder)
-import Force
+import Force exposing (Force(..))
 import Graph exposing (Edge, Graph, Node, NodeContext, NodeId)
 import Helpers exposing (getIdFromString)
 import Html.Events.Extra.Mouse as Mouse
@@ -372,20 +373,19 @@ initSimulation graph width height =
             ( from, to )
     in
     Force.simulation
-        [ -- Defines the force that pulls connected nodes together. You can use
-          -- `Force.customLinks` if you need to adjust the distance and
-          -- strength.
-          Force.links <| List.map link <| Graph.edges graph
+        [ Force.X Dict.empty
+        , Force.Y Dict.empty
+
+        -- Defines the force that pulls connected nodes together. You can use
+        -- `Force.customLinks` if you need to adjust the distance and
+        -- strength.
+        , Force.links <| List.map link <| Graph.edges graph
 
         -- Defines the force that pushes the nodes apart. The default strength
         -- is `-30`, but since we are drawing fairly large circles for each
         -- node, we need to increase the repulsion by decreasing the strength to
         -- `-200`.
         , Force.manyBodyStrength -200 <| List.map .id <| Graph.nodes graph
-
-        -- Defines the force that pulls nodes to a center. We set the center
-        -- coordinates to the center of the svg viewport.
-        , Force.center (width / 2) (height / 2)
         ]
 
 
