@@ -1,7 +1,8 @@
 {
     "type": "application",
     "source-directories": [
-        "src"
+        "src",
+        "vis-src/src"
     ],
     "elm-version": "0.19.1",
     "dependencies": {
@@ -15,10 +16,18 @@
             "elm/json": "1.1.2",
             "elm/svg": "1.0.1",
             "elm/time": "1.0.0",
+            "elm-community/dict-extra": "2.4.0",
             "elm-community/graph": "6.0.0",
+            "elm-community/intdict": "3.0.0",
+            "elm-community/list-extra": "8.2.4",
             "elm-community/typed-svg": "6.0.0",
-            "gampleman/elm-visualization": "2.1.2",
-            "mpizenberg/elm-pointer-events": "4.0.2"
+            "folkertdev/one-true-path-experiment": "5.0.0",
+            "ianmackenzie/elm-geometry": "3.6.0",
+            "ianmackenzie/elm-units-prefixed": "2.7.0",
+            "justinmimbs/time-extra": "1.1.0",
+            "mpizenberg/elm-pointer-events": "4.0.2",
+            "rtfeldman/elm-hex": "1.0.0",
+            "ryannhg/date-format": "2.3.0"
         },
         "indirect": {
             "avh4/elm-fifo": "1.0.4",
@@ -27,22 +36,15 @@
             "elm/parser": "1.1.0",
             "elm/url": "1.0.0",
             "elm/virtual-dom": "1.0.2",
-            "elm-community/intdict": "3.0.0",
-            "elm-community/list-extra": "8.2.4",
             "folkertdev/elm-deque": "3.0.1",
-            "folkertdev/one-true-path-experiment": "5.0.0",
             "folkertdev/svg-path-lowlevel": "3.0.0",
             "ianmackenzie/elm-1d-parameter": "1.0.1",
             "ianmackenzie/elm-float-extra": "1.1.0",
-            "ianmackenzie/elm-geometry": "3.6.0",
             "ianmackenzie/elm-interval": "2.0.0",
             "ianmackenzie/elm-triangular-mesh": "1.0.4",
             "ianmackenzie/elm-units": "2.7.0",
             "ianmackenzie/elm-units-interval": "1.1.0",
-            "ianmackenzie/elm-units-prefixed": "2.7.0",
-            "justinmimbs/date": "3.2.1",
-            "justinmimbs/time-extra": "1.1.0",
-            "ryannhg/date-format": "2.3.0"
+            "justinmimbs/date": "3.2.1"
         }
     },
     "test-dependencies": {

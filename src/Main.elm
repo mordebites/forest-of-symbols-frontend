@@ -4,13 +4,13 @@ import Browser
 import Browser.Dom as Dom
 import Browser.Events as Events
 import Decoders exposing (itemDecoder, itemsDecoder, linkDecoder, linksDecoder)
-import Dict
 import Encoders exposing (newItemEncoder, newLinkEncoder)
-import Force exposing (Force(..))
+import Force
 import Graph exposing (Edge, Graph, Node, NodeContext, NodeId)
 import Helpers exposing (getIdFromString)
 import Html.Events.Extra.Mouse as Mouse
 import Http exposing (..)
+import IntDict
 import Json.Decode as Decode
 import List exposing (map)
 import Models exposing (Drag, Element, Entity, Item, Link, Model, Msg(..), ReadyState, State(..), elementId, missingId, mkEmptyTextBoxes)
@@ -43,11 +43,6 @@ init _ =
     )
 
 
-{-| The graph data we defined at the end of the module has the type
-`Graph String String`. We have to convert it into a `Graph Entity String`.
-`Force.Entity` is an extensible record which includes the coordinates for the
-node.
--}
 initNode : NodeContext String String -> NodeContext Entity String
 initNode ctx =
     { node =
@@ -79,6 +74,17 @@ itemToNode item =
 linkToEdge : Link -> Edge String
 linkToEdge link =
     Edge link.source link.dest link.linkType
+
+
+itemToNodeContext : Item -> NodeContext Entity String
+itemToNodeContext item =
+    { node =
+        { label = Force.entity item.id item.title
+        , id = item.id
+        }
+    , incoming = IntDict.empty
+    , outgoing = IntDict.empty
+    }
 
 
 
@@ -115,16 +121,63 @@ update msg model =
 
         ( ItemCreated result, _ ) ->
             case result of
-                Ok _ ->
-                    ( Model { oldTextBoxes | item = Item missingId "" "" } model.state, createItemGetRequest )
+                Ok item ->
+                    let
+                        newItems =
+                            model.textBoxes.items ++ [ item ]
+                    in
+                    case model.state of
+                        Init _ ->
+                            ( Model { oldTextBoxes | items = newItems } model.state, getElementPosition )
+
+                        Ready state ->
+                            let
+                                nodeContext =
+                                    itemToNodeContext item
+
+                                newGraph =
+                                    Graph.insert nodeContext state.graph
+                            in
+                            ( Model
+                                { oldTextBoxes | item = Item missingId "" "", items = newItems }
+                                (Ready { state | graph = newGraph })
+                            , getElementPosition
+                            )
 
                 Err _ ->
                     ( Model { oldTextBoxes | error = "Item Creation issues" } model.state, Cmd.none )
 
         ( LinkCreated result, _ ) ->
             case result of
-                Ok _ ->
-                    ( Model { oldTextBoxes | link = Link missingId "" missingId missingId } model.state, createLinkGetRequest )
+                Ok link ->
+                    let
+                        newLinks =
+                            model.textBoxes.links ++ [ link ]
+                    in
+                    case model.state of
+                        Init _ ->
+                            ( Model { oldTextBoxes | links = newLinks } model.state, getElementPosition )
+
+                        Ready state ->
+                            let
+                                destNodeLink : Maybe (NodeContext Entity String) -> Maybe (NodeContext Entity String)
+                                destNodeLink =
+                                    Maybe.map (\ctx -> { ctx | incoming = IntDict.insert link.dest link.linkType ctx.incoming })
+
+                                sourceNodeLink : Maybe (NodeContext Entity String) -> Maybe (NodeContext Entity String)
+                                sourceNodeLink =
+                                    Maybe.map (\ctx -> { ctx | outgoing = IntDict.insert link.source link.linkType ctx.outgoing })
+
+                                newGraph =
+                                    state.graph
+                                        |> Graph.update link.source destNodeLink
+                                        |> Graph.update link.dest sourceNodeLink
+                            in
+                            ( Model
+                                { oldTextBoxes | item = Item missingId "" "", links = newLinks }
+                                (Ready { state | graph = newGraph })
+                            , getElementPosition
+                            )
 
                 Err _ ->
                     ( Model { oldTextBoxes | error = "Link Creation issues" } model.state, Cmd.none )
@@ -192,7 +245,7 @@ update msg model =
                             , graph = state.graph
                             , showGraph = True
                             , simulation = initSimulation state.graph element.width element.height
-                            , zoom = initZoom element
+                            , zoom = state.zoom
                             }
                         )
                     , Cmd.none
@@ -363,8 +416,6 @@ handleTick readyState =
             }
 
 
-{-| Initializes the simulation by setting the forces for the graph.
--}
 initSimulation : Graph Entity String -> Float -> Float -> Force.State NodeId
 initSimulation graph width height =
     let
@@ -373,8 +424,8 @@ initSimulation graph width height =
             ( from, to )
     in
     Force.simulation
-        [ Force.X Dict.empty
-        , Force.Y Dict.empty
+        [ Force.xForceUniformDefaultForce (width / 2) <| List.map .id <| Graph.nodes graph
+        , Force.yForceUniformDefaultForce (height / 2) <| List.map .id <| Graph.nodes graph
 
         -- Defines the force that pulls connected nodes together. You can use
         -- `Force.customLinks` if you need to adjust the distance and
@@ -385,7 +436,7 @@ initSimulation graph width height =
         -- is `-30`, but since we are drawing fairly large circles for each
         -- node, we need to increase the repulsion by decreasing the strength to
         -- `-200`.
-        , Force.manyBodyStrength -200 <| List.map .id <| Graph.nodes graph
+        , Force.manyBodyStrength -250 <| List.map .id <| Graph.nodes graph
         ]
 
 

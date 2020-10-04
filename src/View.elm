@@ -115,7 +115,7 @@ nodeElement node =
         [ circle
             [ r 20
             , strokeWidth 3
-            , fill (Paint Color.yellow)
+            , fill (Paint Color.lightYellow)
             , stroke (Paint Color.black)
             , cursor CursorPointer
 
