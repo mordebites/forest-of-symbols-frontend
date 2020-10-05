@@ -168,7 +168,7 @@ onMouseDown index =
 
 {-| This function draws the lines between the vertices.
 -}
-linkElement : Graph Entity String -> Edge String -> Svg msg
+linkElement : Graph Entity String -> Edge String -> Svg Msg
 linkElement graph edge =
     let
         source =
@@ -181,16 +181,27 @@ linkElement graph edge =
                 Maybe.map (.node >> .label) <|
                     Graph.get edge.to graph
     in
-    line
-        [ x1 source.x
-        , y1 source.y
-        , x2 target.x
-        , y2 target.y
-        , strokeWidth 1
-        , stroke edgeColor
-        , markerEnd "url(#arrowhead)"
+    g [ class [ "link" ] ]
+        [ line
+            [ x1 source.x
+            , y1 source.y
+            , x2 target.x
+            , y2 target.y
+            , strokeWidth 5
+            , stroke <| Paint <| Color.white
+            ]
+            []
+        , line
+            [ x1 source.x
+            , y1 source.y
+            , x2 target.x
+            , y2 target.y
+            , strokeWidth 1
+            , stroke edgeColor
+            , markerEnd "url(#arrowhead)"
+            ]
+            []
         ]
-        []
 
 
 {-| This is the definition of the arrow head that is displayed at the end of
