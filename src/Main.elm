@@ -13,7 +13,21 @@ import Http exposing (..)
 import IntDict
 import Json.Decode as Decode
 import List exposing (map)
-import Models exposing (Drag, Element, Entity, Item, Link, Model, Msg(..), ReadyState, State(..), elementId, missingId, mkEmptyTextBoxes)
+import Models
+    exposing
+        ( Drag
+        , Element
+        , Entity
+        , Item
+        , Link
+        , Model
+        , Msg(..)
+        , ReadyState
+        , State(..)
+        , elementId
+        , missingId
+        , mkEmptyTextBoxes
+        )
 import Task
 import View exposing (view)
 import Zoom exposing (Zoom)
@@ -43,10 +57,10 @@ init _ =
     )
 
 
-initNode : NodeContext String String -> NodeContext Entity String
-initNode ctx =
+initNode : Float -> Float -> NodeContext String String -> NodeContext Entity String
+initNode x y ctx =
     { node =
-        { label = Force.entity ctx.node.id ctx.node.label
+        { label = shiftedEntity x y ctx.node.id ctx.node.label
         , id = ctx.node.id
         }
     , incoming = ctx.incoming
@@ -76,17 +90,6 @@ linkToEdge link =
     Edge link.source link.dest link.linkType
 
 
-itemToNodeContext : Item -> NodeContext Entity String
-itemToNodeContext item =
-    { node =
-        { label = Force.entity item.id item.title
-        , id = item.id
-        }
-    , incoming = IntDict.empty
-    , outgoing = IntDict.empty
-    }
-
-
 
 -- UPDATE
 
@@ -99,19 +102,39 @@ update msg model =
     in
     case ( msg, model ) of
         ( UpdateItemTitle newTitle, _ ) ->
-            ( Model { oldTextBoxes | item = Item missingId newTitle oldTextBoxes.item.itemType } model.state, Cmd.none )
+            ( Model
+                { oldTextBoxes | item = Item missingId newTitle oldTextBoxes.item.itemType }
+                model.state
+            , Cmd.none
+            )
 
         ( UpdateItemType newType, _ ) ->
-            ( Model { oldTextBoxes | item = Item missingId oldTextBoxes.item.title newType } model.state, Cmd.none )
+            ( Model
+                { oldTextBoxes | item = Item missingId oldTextBoxes.item.title newType }
+                model.state
+            , Cmd.none
+            )
 
         ( UpdateLinkType newType, _ ) ->
-            ( Model { oldTextBoxes | link = setTypeInLink newType oldTextBoxes.link } model.state, Cmd.none )
+            ( Model
+                { oldTextBoxes | link = setTypeInLink newType oldTextBoxes.link }
+                model.state
+            , Cmd.none
+            )
 
         ( UpdateLinkSource newSource, _ ) ->
-            ( Model { oldTextBoxes | link = setSourceItemInLink (getIdFromString newSource) oldTextBoxes.link } model.state, Cmd.none )
+            ( Model
+                { oldTextBoxes | link = setSourceItemInLink (getIdFromString newSource) oldTextBoxes.link }
+                model.state
+            , Cmd.none
+            )
 
         ( UpdateLinkDest newDest, _ ) ->
-            ( Model { oldTextBoxes | link = setDestItemInLink (getIdFromString newDest) oldTextBoxes.link } model.state, Cmd.none )
+            ( Model
+                { oldTextBoxes | link = setDestItemInLink (getIdFromString newDest) oldTextBoxes.link }
+                model.state
+            , Cmd.none
+            )
 
         ( CreateNewItem, _ ) ->
             validateItem model
@@ -160,18 +183,10 @@ update msg model =
 
                         Ready state ->
                             let
-                                destNodeLink : Maybe (NodeContext Entity String) -> Maybe (NodeContext Entity String)
-                                destNodeLink =
-                                    Maybe.map (\ctx -> { ctx | incoming = IntDict.insert link.dest link.linkType ctx.incoming })
-
-                                sourceNodeLink : Maybe (NodeContext Entity String) -> Maybe (NodeContext Entity String)
-                                sourceNodeLink =
-                                    Maybe.map (\ctx -> { ctx | outgoing = IntDict.insert link.source link.linkType ctx.outgoing })
-
                                 newGraph =
                                     state.graph
-                                        |> Graph.update link.source destNodeLink
-                                        |> Graph.update link.dest sourceNodeLink
+                                        |> Graph.update link.dest (destNodeLink link)
+                                        |> Graph.update link.source (sourceNodeLink link)
                             in
                             ( Model
                                 { oldTextBoxes | item = Item missingId "" "", links = newLinks }
@@ -192,9 +207,18 @@ update msg model =
                         Ready state ->
                             let
                                 newGraph =
-                                    Graph.mapContexts initNode (getGraphFromItemAndLinkLists items model.textBoxes.links)
+                                    Graph.mapContexts
+                                        (initNode
+                                            (state.element.width / 2)
+                                            (state.element.height / 2)
+                                        )
+                                        (getGraphFromItemAndLinkLists items model.textBoxes.links)
                             in
-                            ( Model { oldTextBoxes | items = items } (Ready { state | graph = newGraph }), getElementPosition )
+                            ( Model
+                                { oldTextBoxes | items = items }
+                                (Ready { state | graph = newGraph })
+                            , getElementPosition
+                            )
 
                 Err _ ->
                     ( Model { oldTextBoxes | error = "Item List Retrieval Issues" } model.state, Cmd.none )
@@ -209,9 +233,18 @@ update msg model =
                         Ready state ->
                             let
                                 newGraph =
-                                    Graph.mapContexts initNode (getGraphFromItemAndLinkLists model.textBoxes.items links)
+                                    Graph.mapContexts
+                                        (initNode
+                                            (state.element.width / 2)
+                                            (state.element.height / 2)
+                                        )
+                                        (getGraphFromItemAndLinkLists model.textBoxes.items links)
                             in
-                            ( Model { oldTextBoxes | links = links } (Ready { state | graph = newGraph }), getElementPosition )
+                            ( Model
+                                { oldTextBoxes | links = links }
+                                (Ready { state | graph = newGraph })
+                            , getElementPosition
+                            )
 
                 Err _ ->
                     ( Model { oldTextBoxes | error = "Link List Retrieval Issues" } model.state, Cmd.none )
@@ -229,7 +262,7 @@ update msg model =
                             , element = element
                             , graph = graph
                             , showGraph = False
-                            , simulation = initSimulation graph element.width element.height
+                            , simulation = initSimulation graph (element.width / 2) (element.height / 2)
                             , zoom = initZoom element
                             }
                         )
@@ -244,7 +277,7 @@ update msg model =
                             , element = element
                             , graph = state.graph
                             , showGraph = True
-                            , simulation = initSimulation state.graph element.width element.height
+                            , simulation = initSimulation state.graph (element.width / 2) (element.height / 2)
                             , zoom = state.zoom
                             }
                         )
@@ -353,6 +386,16 @@ createLinkGetRequest =
         }
 
 
+destNodeLink : Link -> Maybe (NodeContext Entity String) -> Maybe (NodeContext Entity String)
+destNodeLink link =
+    Maybe.map
+        (\ctx ->
+            { ctx
+                | incoming = IntDict.insert link.source link.linkType ctx.incoming
+            }
+        )
+
+
 {-| This function returns a command to retrieve the position of the svg element.
 -}
 getElementPosition : Cmd Msg
@@ -417,44 +460,60 @@ handleTick readyState =
 
 
 initSimulation : Graph Entity String -> Float -> Float -> Force.State NodeId
-initSimulation graph width height =
+initSimulation graph x y =
     let
         link : { c | from : a, to : b } -> ( a, b )
         link { from, to } =
             ( from, to )
     in
     Force.simulation
-        [ Force.xForceUniformDefaultForce (width / 2) <| List.map .id <| Graph.nodes graph
-        , Force.yForceUniformDefaultForce (height / 2) <| List.map .id <| Graph.nodes graph
-
-        -- Defines the force that pulls connected nodes together. You can use
-        -- `Force.customLinks` if you need to adjust the distance and
-        -- strength.
+        [ Force.xForceUniformDefaultForce x <| List.map .id <| Graph.nodes graph
+        , Force.yForceUniformDefaultForce y <| List.map .id <| Graph.nodes graph
         , Force.links <| List.map link <| Graph.edges graph
 
-        -- Defines the force that pushes the nodes apart. The default strength
-        -- is `-30`, but since we are drawing fairly large circles for each
-        -- node, we need to increase the repulsion by decreasing the strength to
-        -- `-200`.
-        , Force.manyBodyStrength -250 <| List.map .id <| Graph.nodes graph
+        -- Defines the force that pushes the nodes apart.
+        , Force.manyBodyStrength -300 <| List.map .id <| Graph.nodes graph
         ]
 
 
 {-| Initializes the zoom and sets a minimum and maximum zoom level.
-
-You can also use `Zoom.translateExtent` to restrict the area in which the user
-may drag, but since the graph is larger than the viewport and the exact
-dimensions depend on the data and the final layout, you would either need to use
-some kind of heuristic for the final dimensions here, or you would have to let
-the simulation play out (or use `Force.computeSimulate` to calculate it at
-once), find the min and max x and y positions of the graph nodes and use those
-values to set the translate extent.
-
 -}
 initZoom : Element -> Zoom
 initZoom element =
     Zoom.init { width = element.width, height = element.height }
-        |> Zoom.scaleExtent 0.1 2
+        |> Zoom.scaleExtent 0.05 2
+
+
+initialRadius : Float
+initialRadius =
+    10
+
+
+initialAngle : Float
+initialAngle =
+    pi * (3 - sqrt 5)
+
+
+itemToNodeContext : Item -> NodeContext Entity String
+itemToNodeContext item =
+    { node =
+        { label = plainEntity item.id item.title
+        , id = item.id
+        }
+    , incoming = IntDict.empty
+    , outgoing = IntDict.empty
+    }
+
+
+plainEntity : Int -> a -> Force.Entity Int { value : a }
+plainEntity index a =
+    { x = 0
+    , y = 0
+    , vx = 0.0
+    , vy = 0.0
+    , id = index
+    , value = a
+    }
 
 
 setSourceItemInLink : Int -> Link -> Link
@@ -481,6 +540,38 @@ shiftPosition zoom ( elementX, elementY ) ( clientX, clientY ) =
     ( (clientX - zoomRecord.translate.x - elementX) / zoomRecord.scale
     , (clientY - zoomRecord.translate.y - elementY) / zoomRecord.scale
     )
+
+
+{-| The initial position of entities is arranged
+in a [phylotaxic pattern](https://elm-visualization.netlify.com/Petals/)
+shifted by the provided x and y values.
+-}
+shiftedEntity : Float -> Float -> Int -> a -> Force.Entity Int { value : a }
+shiftedEntity x y index a =
+    let
+        radius =
+            sqrt (toFloat index) * initialRadius
+
+        angle =
+            toFloat index * initialAngle
+    in
+    { x = radius * cos angle + x
+    , y = radius * sin angle + y
+    , vx = 0.0
+    , vy = 0.0
+    , id = index
+    , value = a
+    }
+
+
+sourceNodeLink : Link -> Maybe (NodeContext Entity String) -> Maybe (NodeContext Entity String)
+sourceNodeLink link =
+    Maybe.map
+        (\ctx ->
+            { ctx
+                | outgoing = IntDict.insert link.dest link.linkType ctx.outgoing
+            }
+        )
 
 
 updateContextWithValue :
